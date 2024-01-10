@@ -36,41 +36,7 @@ class MyApp extends StatelessWidget {
             IconThemeData(color: Theme.of(context).colorScheme.primary),
           )
         ),
-        onGenerateRoute: (settings) {
-          return MaterialPageRoute(
-              settings: settings,
-              builder: (context) {
-                switch (settings.name) {
-                  case "apps":
-                    return AppsPage();
-                  default:
-                    return HomePage();
-                }
-              });
-        },
-      ),
-    );
-  }
-}
-
-class HomePage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Container(),
-      bottomNavigationBar: BottomAppBar(
-        color: Colors.transparent,
-        elevation: 0,
-        child: Container(
-          height: 70,
-          child: Center(
-            child: IconButton(
-              icon: Icon(Icons.apps),
-              onPressed: () => Navigator.pushNamed(context, "apps"),
-            ),
-          ),
-        ),
+        home: AppsPage(),
       ),
     );
   }
