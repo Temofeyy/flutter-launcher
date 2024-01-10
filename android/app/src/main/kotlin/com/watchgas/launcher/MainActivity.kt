@@ -10,49 +10,85 @@ import androidx.annotation.NonNull
 import androidx.annotation.RequiresApi
 import io.flutter.Log
 import io.flutter.embedding.engine.FlutterEngine
-import io.flutter.embedding.engine.dart.DartExecutor
-import io.flutter.plugin.common.MethodChannel
+import io.flutter.plugin.common.EventChannel
 import io.flutter.plugins.GeneratedPluginRegistrant
 
+
+
 class MainActivity: FlutterActivity() {
-    private val receiver: BroadcastReceiver = LockReceiver()
+    private val eventChannelName: String = "LockerEvents"
+    private val intentAction: String = "com.example.android.UNLOCK_LAUNCHER"
+
+    private val passwordReceiver: PasswordBroadcastReceiver = PasswordBroadcastReceiver()
+    private val sendToFlutterStream: LauncherEventHandler = LauncherEventHandler()
+
+
+
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-
         GeneratedPluginRegistrant.registerWith(flutterEngine)
 
-        val filter = IntentFilter("com.example.android.UNLOCK_LAUNCHER")
-        registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED)
+        val eventChannel = EventChannel(flutterEngine.dartExecutor.binaryMessenger, eventChannelName)
+        eventChannel.setStreamHandler(sendToFlutterStream)
+        passwordReceiver.addFlutterPort(sendToFlutterStream)
+
+        val filter = IntentFilter(intentAction)
+        registerReceiver(passwordReceiver, filter, Context.RECEIVER_EXPORTED)
     }
 
     override fun onDestroy() {
-        unregisterReceiver(receiver)
+        unregisterReceiver(passwordReceiver)
         super.onDestroy()
     }
 }
 
-class LockReceiver : BroadcastReceiver() {
+class PasswordBroadcastReceiver: BroadcastReceiver() {
+    private val PASSWORD = "12345"
+    private var flutterPort: LauncherEventHandler? = null
+
     override fun onReceive(context: Context, intent: Intent) {
         Log.d("Kotlin", "Receive an intent")
-
-        val PASSWORD = "12345"
-        val flutterEngine = FlutterEngine(context)
-        flutterEngine
-                .dartExecutor
-                .executeDartEntrypoint(DartExecutor.DartEntrypoint.createDefault())
-        val channel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "LockerEvents")
-
         val pass = intent.getStringExtra("pass")
-
         if(pass == PASSWORD){
             Log.d("Kotlin", "Password correct")
-            channel.invokeMethod("Unlock",null)
+            if(flutterPort == null) {
+                Log.d("Kotlin", "LauncherEventHandler wasn't passed to PasswordReceiver in MainActivity")
+                return
+            }
+            flutterPort!!.add(LauncherEvents.Unlock)
         } else {
             Log.d("Kotlin", "Password uncorrected")
-            channel.invokeMethod("InvalidPassword",null )
+            flutterPort!!.add(LauncherEvents.InvalidPassword)
         }
-
     }
+    fun addFlutterPort(port: LauncherEventHandler){
+        if(this.flutterPort != null) return
+        this.flutterPort = port;
+    }
+}
+
+class LauncherEventHandler : EventChannel.StreamHandler {
+    private var stream: EventChannel.EventSink? = null
+
+    override fun onListen(args: Any?, sink: EventChannel.EventSink) {
+        Log.d("Kotlin", "Added listener to LauncherEventHandler")
+        this.stream = sink
+    }
+
+    override fun onCancel(args: Any?) {
+        this.stream = null
+    }
+
+    fun add(event: LauncherEvents){
+        if(stream == null) return;
+        Log.d("Kotlin", "Added event ${event.name} to flutter stream")
+        stream!!.success(event.name)
+    }
+}
+
+enum class LauncherEvents{
+    Unlock,
+    InvalidPassword
 }

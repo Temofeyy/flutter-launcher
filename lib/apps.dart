@@ -1,12 +1,17 @@
+import 'dart:async';
+
 import 'package:device_apps/device_apps.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app_state.dart';
+import 'config.dart';
 
 final modeProvider = StateProvider<DisplayMode>((ref) => DisplayMode.Grid);
 
 class AppsPage extends StatefulWidget {
+  const AppsPage({super.key});
+
   @override
   _AppsPageState createState() => _AppsPageState();
 }
@@ -18,39 +23,35 @@ enum DisplayMode {
 
 class _AppsPageState extends State<AppsPage>
     with AutomaticKeepAliveClientMixin {
-  final channel = const MethodChannel('LockerEvents');
-
+  final events = const EventChannel('LockerEvents');
+  late final StreamSubscription _sub;
   bool _isLockMode = true;
 
-  // void onViewModeChanged(WidgetRef ref, DisplayMode mode){
-  //   ref.read(modeProvider.notifier).update((state) =>
-  //   mode == DisplayMode.Grid
-  //       ? DisplayMode.List
-  //       : DisplayMode.Grid);
-  // }
-
-  Future<void> handleKotlinMethod(MethodCall call) async {
-    print('Flutter received an method: ${call.method}');
-    switch (call.method){
+  void handleLauncherEvents(dynamic event){
+    print('Flutter receive $event event from Kotlin');
+    switch (event as String){
       case 'Unlock':
         _isLockMode = false;
         setState((){});
         break;
       case 'InvalidPassword':
-        print('invalid pass');
         break;
       default:
-        print('Unsupported LockerEvent event: ${call.method}');
+        print('Unsupported LockerEvent event: ${event}');
     }
-    return Future.value();
   }
 
   @override
   void initState() {
     super.initState();
-    channel.setMethodCallHandler(handleKotlinMethod);
+    _sub = events.receiveBroadcastStream().listen(handleLauncherEvents);
   }
 
+  @override
+  void dispose() {
+    _sub.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,24 +59,23 @@ class _AppsPageState extends State<AppsPage>
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: _isLockMode? Colors.red: Colors.green,
+        scrolledUnderElevation: 0,
         elevation: 0,
       ),
       body: Consumer(
         builder: (_, ref, __) {
           final appsInfo = ref.watch(appsProvider);
           return appsInfo.when(
-            data: (apps) => _GridView(apps: apps, lockMode: _isLockMode,),
+            data: (apps) {
+              apps = _isLockMode
+                  ? apps.where((e) => e.packageName == AppConfig.launcherPackageName).toList()
+                  : apps;
+              return _GridView(apps: apps);
+            },
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, s) => Container(),
           );
         }
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: (){
-          _isLockMode = !_isLockMode;
-          setState(() {});
-        },
       ),
     );
   }
@@ -111,28 +111,21 @@ class _ListView extends StatelessWidget {
 }
 
 class _GridView extends StatelessWidget {
-  final List<Application> apps;
-  final bool lockMode;
-  const _GridView({Key? key, required this.apps, required this.lockMode}): super(key: key);
+  final List<ApplicationWithIcon> apps;
+  const _GridView({Key? key, required this.apps}): super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final appsForView = lockMode
-        ? apps.where((e) => e.packageName == "com.example.ex")
-        : apps.take(10);
-
-    return GridView(
+    return GridView.builder(
+      itemCount: apps.length,
+      itemBuilder: (_, i) => AppGridItem(application: apps[i]),
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(
-          16.0, kToolbarHeight + 16.0, 16.0, 16.0),
+      padding: const EdgeInsets.fromLTRB(16.0, kToolbarHeight + 16.0, 16.0, 16.0),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 4,
         crossAxisSpacing: 8.0,
         mainAxisSpacing: 8.0,
       ),
-      children: appsForView
-          .map((app) => AppGridItem(application: app as ApplicationWithIcon?))
-          .toList(),
     );
   }
 }
@@ -156,6 +149,7 @@ class AppGridItem extends StatelessWidget {
               application!.icon,
               fit: BoxFit.contain,
               width: 40,
+              cacheWidth: 110,
             ),
           ),
           Text(
