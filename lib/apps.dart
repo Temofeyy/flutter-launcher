@@ -18,76 +18,65 @@ enum DisplayMode {
 
 class _AppsPageState extends State<AppsPage>
     with AutomaticKeepAliveClientMixin {
-  final channel = MethodChannel('LockerEvents');
+  final channel = const MethodChannel('LockerEvents');
 
   bool _isLockMode = true;
 
-  void onViewModeChanged(WidgetRef ref, DisplayMode mode){
-    ref.read(modeProvider.notifier).update((state) =>
-    mode == DisplayMode.Grid
-        ? DisplayMode.List
-        : DisplayMode.Grid);
-  }
+  // void onViewModeChanged(WidgetRef ref, DisplayMode mode){
+  //   ref.read(modeProvider.notifier).update((state) =>
+  //   mode == DisplayMode.Grid
+  //       ? DisplayMode.List
+  //       : DisplayMode.Grid);
+  // }
 
-  void onUnlockLauncher() {
-    if(mounted){
-      _isLockMode = false;
-      setState((){});
+  Future<void> handleKotlinMethod(MethodCall call) async {
+    print('Flutter received an method: ${call.method}');
+    switch (call.method){
+      case 'Unlock':
+        _isLockMode = false;
+        setState((){});
+        break;
+      case 'InvalidPassword':
+        print('invalid pass');
+        break;
+      default:
+        print('Unsupported LockerEvent event: ${call.method}');
     }
-  }
-
-  void onInvalidPassword(){
-    print('invalid pass');
+    return Future.value();
   }
 
   @override
   void initState() {
     super.initState();
-    channel.setMethodCallHandler((call) {
-      print('Receive intent in Launcher -------');
-      switch (call.method){
-        case 'Unlock':
-          onUnlockLauncher();
-          break;
-        case 'InvalidPassword':
-          onInvalidPassword();
-          break;
-        default:
-          print('Unsupported LockerEvent event: ${call.method}');
-      }
-      return Future.value();
-    });
+    channel.setMethodCallHandler(handleKotlinMethod);
   }
 
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return Consumer(
-      builder: (context, ref, _) {
-        final appsInfo = ref.watch(appsProvider);
-        final mode = ref.watch(modeProvider);
-        return Scaffold(
-          extendBodyBehindAppBar: true,
-          appBar: AppBar(
-            backgroundColor: _isLockMode? Colors.red: Colors.green,
-            elevation: 0,
-            actions: [
-              IconButton(
-                icon: Icon(mode == DisplayMode.Grid ? Icons.list : Icons.grid_on),
-                onPressed: () => onViewModeChanged(ref, mode),
-              )
-            ],
-          ),
-          body: appsInfo.when(
-            data: (List<Application> apps) => mode == DisplayMode.List
-                ? _ListView(apps: apps)
-                : _GridView(apps: apps),
-            loading: () => Center(child: CircularProgressIndicator()),
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: _isLockMode? Colors.red: Colors.green,
+        elevation: 0,
+      ),
+      body: Consumer(
+        builder: (_, ref, __) {
+          final appsInfo = ref.watch(appsProvider);
+          return appsInfo.when(
+            data: (apps) => _GridView(apps: apps, lockMode: _isLockMode,),
+            loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, s) => Container(),
-          ),
-        );
-      },
+          );
+        }
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: (){
+          _isLockMode = !_isLockMode;
+          setState(() {});
+        },
+      ),
     );
   }
 
@@ -123,24 +112,27 @@ class _ListView extends StatelessWidget {
 
 class _GridView extends StatelessWidget {
   final List<Application> apps;
-
-  const _GridView({Key? key, required this.apps}): super(key: key);
+  final bool lockMode;
+  const _GridView({Key? key, required this.apps, required this.lockMode}): super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final appsForView = lockMode
+        ? apps.where((e) => e.packageName == "com.example.ex")
+        : apps.take(10);
+
     return GridView(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(
           16.0, kToolbarHeight + 16.0, 16.0, 16.0),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 4,
         crossAxisSpacing: 8.0,
         mainAxisSpacing: 8.0,
       ),
-      children: [
-        ...
-        apps.map((app) => AppGridItem(application: app as ApplicationWithIcon?)),
-      ]
+      children: appsForView
+          .map((app) => AppGridItem(application: app as ApplicationWithIcon?))
+          .toList(),
     );
   }
 }
