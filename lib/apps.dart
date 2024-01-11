@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:app_settings/app_settings.dart';
 import 'package:device_apps/device_apps.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -41,6 +42,12 @@ class _AppsPageState extends State<AppsPage>
     }
   }
 
+  void openWifiSettings(){
+
+    AppSettings.openAppSettings(type: AppSettingsType.wifi);
+
+  }
+
   @override
   void initState() {
     super.initState();
@@ -57,10 +64,26 @@ class _AppsPageState extends State<AppsPage>
   Widget build(BuildContext context) {
     super.build(context);
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      // extendBodyBehindAppBar: true,
       appBar: AppBar(
         scrolledUnderElevation: 0,
         elevation: 0,
+        title: const Text('WatchGas'),
+        centerTitle: true,
+        actions: [
+          PopupMenuButton(
+            icon: const Icon(Icons.settings),
+            itemBuilder: (_) => [
+              PopupMenuItem(
+                child: TextButton.icon(
+                  onPressed: openWifiSettings,
+                  icon: const Icon(Icons.wifi),
+                  label: const Text('Wifi'),
+                )
+              )
+            ]
+          ),
+        ],
       ),
       body: Consumer(
         builder: (_, ref, __) {
@@ -120,7 +143,8 @@ class _GridView extends StatelessWidget {
       itemCount: apps.length,
       itemBuilder: (_, i) => AppGridItem(application: apps[i]),
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16.0, kToolbarHeight + 16.0, 16.0, 16.0),
+      // padding: const EdgeInsets.fromLTRB(16.0, kToolbarHeight + 16.0, 16.0, 16.0),
+      padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 4,
         crossAxisSpacing: 8.0,

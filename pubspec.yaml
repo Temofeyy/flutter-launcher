@@ -9,7 +9,12 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+
+#  System level
   device_apps: ^2.2.0
+  app_settings: ^5.1.1
+
+# "state manager"
   flutter_riverpod: ^2.3.0
   receive_intent: ^0.2.5
 
