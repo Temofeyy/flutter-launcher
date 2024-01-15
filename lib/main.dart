@@ -25,9 +25,8 @@ class MyApp extends StatelessWidget {
             iconTheme:
             IconThemeData(color: Theme.of(context).colorScheme.primary),
           ),
-          popupMenuTheme: PopupMenuThemeData(
+          popupMenuTheme: const PopupMenuThemeData(
             color: Colors.black,
-            iconColor: Theme.of(context).colorScheme.primary,
           ),
           textButtonTheme: TextButtonThemeData(
             style: TextButton.styleFrom(
