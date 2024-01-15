@@ -1,0 +1,39 @@
+{
+  "name": "enterprises/LC02uaavy5/policies/policy1",
+  "version": "28",
+  "applications": [
+    {
+      "packageName": "com.watchgas.launcher",
+      "installType": "KIOSK",
+      "defaultPermissionPolicy": "GRANT",
+      "delegatedScopes": [
+        "PACKAGE_ACCESS"
+      ],
+      "autoUpdateMode": "AUTO_UPDATE_HIGH_PRIORITY"
+    },
+    {
+      "packageName": "nl.watchgas.app",
+      "installType": "FORCE_INSTALLED",
+      "defaultPermissionPolicy": "GRANT",
+      "autoUpdateMode": "AUTO_UPDATE_HIGH_PRIORITY"
+    },
+    {
+      "packageName": "com.google.android.gm",
+      "installType": "FORCE_INSTALLED",
+      "defaultPermissionPolicy": "GRANT"
+    },
+    {
+      "packageName": "com.sec.android.app.myfiles",
+      "installType": "FORCE_INSTALLED",
+      "defaultPermissionPolicy": "GRANT"
+    }
+  ],
+  "systemUpdate": {
+    "type": "WINDOWED",
+    "startMinutes": 120,
+    "endMinutes": 240
+  },
+  "keyguardDisabled": true,
+  "appAutoUpdatePolicy": "ALWAYS",
+  "playStoreMode": "BLACKLIST"
+}
