@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:app_settings/app_settings.dart';
 import 'package:device_apps/device_apps.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,14 +27,14 @@ class _AppsPageState extends State<AppsPage>
     with AutomaticKeepAliveClientMixin {
   final events = const EventChannel('LockerEvents');
   late final StreamSubscription _sub;
+  String lockedPackageName = AppConfig.mainAppName;
   bool _isLockMode = true;
 
   void handleLauncherEvents(dynamic event){
     print('Flutter receive $event event from Kotlin');
     switch (event as String){
       case 'Unlock':
-        _isLockMode = false;
-        setState((){});
+        unlock();
         break;
       case 'InvalidPassword':
         break;
@@ -42,15 +43,26 @@ class _AppsPageState extends State<AppsPage>
     }
   }
 
+  void unlock(){
+    _isLockMode = false;
+    setState((){});
+  }
+
+  void lock(){
+    _isLockMode = true;
+    setState((){});
+  }
+
   void openWifiSettings(){
-
     AppSettings.openAppSettings(type: AppSettingsType.wifi);
-
   }
 
   @override
   void initState() {
     super.initState();
+    if(kDebugMode){
+      lockedPackageName = 'com.example.ex';
+    }
     _sub = events.receiveBroadcastStream().listen(handleLauncherEvents);
   }
 
@@ -58,6 +70,16 @@ class _AppsPageState extends State<AppsPage>
   void dispose() {
     _sub.cancel();
     super.dispose();
+  }
+
+  List<ApplicationWithIcon> getLockedList(List<ApplicationWithIcon> apps){
+    return [apps.firstWhere((e) => e.packageName == lockedPackageName)];
+  }
+
+  List<ApplicationWithIcon> getUnlockedList(List<ApplicationWithIcon> apps) {
+    return apps
+        .where((e) => AppConfig.unlockedModeApps.contains(e.packageName))
+        .toList();
   }
 
   @override
@@ -90,16 +112,21 @@ class _AppsPageState extends State<AppsPage>
           final appsInfo = ref.watch(appsProvider);
           return appsInfo.when(
             data: (apps) {
-              apps = _isLockMode
-                  ? apps.where((e) => e.packageName == AppConfig.launcherPackageName).toList()
-                  : apps;
-              return _GridView(apps: apps);
+              apps.removeWhere((app) => app.packageName == AppConfig.launcherName);
+              return _GridView(
+                apps: _isLockMode
+                  ? getLockedList(apps)
+                  : getUnlockedList(apps),
+              );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, s) => Container(),
           );
         }
       ),
+      floatingActionButton: _isLockMode
+                              ? null
+                              : LockButton(onTap: lock),
     );
   }
 
@@ -184,6 +211,21 @@ class AppGridItem extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+
+class LockButton extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const LockButton({super.key, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return FloatingActionButton(
+      onPressed: onTap,
+      child: const Icon(Icons.lock),
     );
   }
 }
