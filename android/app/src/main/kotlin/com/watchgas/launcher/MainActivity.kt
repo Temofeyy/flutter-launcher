@@ -42,6 +42,10 @@ class MainActivity: FlutterActivity() {
         unregisterReceiver(passwordReceiver)
         super.onDestroy()
     }
+
+    override fun onBackPressed() {
+
+    }
 }
 
 class PasswordBroadcastReceiver: BroadcastReceiver() {
