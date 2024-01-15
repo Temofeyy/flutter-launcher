@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'apps.dart';
@@ -26,21 +25,32 @@ class MyApp extends StatelessWidget {
             iconTheme:
             IconThemeData(color: Theme.of(context).colorScheme.primary),
           ),
-          popupMenuTheme: const PopupMenuThemeData(
-            color: Colors.black
-          )
+          popupMenuTheme: PopupMenuThemeData(
+            color: Colors.black,
+            iconColor: Theme.of(context).colorScheme.primary,
+          ),
+          textButtonTheme: TextButtonThemeData(
+            style: TextButton.styleFrom(
+              iconColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          floatingActionButtonTheme: FloatingActionButtonThemeData(
+            foregroundColor: Theme.of(context).colorScheme.primary,
+            backgroundColor: Colors.black
+          ),
+
       ),
         theme: ThemeData(  
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.red),
           visualDensity: VisualDensity.adaptivePlatformDensity,
           appBarTheme: AppBarTheme(
             titleTextStyle: const TextStyle(color: Colors.black, fontSize: 18),
-            backgroundColor: Colors.transparent,
-            actionsIconTheme:
-            IconThemeData(color: Theme.of(context).colorScheme.primary),
-            iconTheme:
-            IconThemeData(color: Theme.of(context).colorScheme.primary),
-          )
+            // actionsIconTheme:
+            // IconThemeData(color: Theme.of(context).colorScheme.primary),
+            // iconTheme:
+            // IconThemeData(color: Theme.of(context).colorScheme.primary),
+          ),
         ),
         home: AppsPage(),
       ),
